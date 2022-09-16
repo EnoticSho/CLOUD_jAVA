@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity"
+            minHeight="-Infinity" minWidth="-Infinity"
+            prefHeight="400.0" prefWidth="600.0"
+            xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.client_cloud.CloudMainController">
+   <children>
+      <ListView fx:id="clientView" layoutX="14.0" layoutY="14.0" prefHeight="343.0" prefWidth="247.0" />
+      <ListView fx:id="serverView" layoutX="339.0" layoutY="14.0" prefHeight="343.0" prefWidth="247.0" />
+      <Button onAction="#sendToServer" layoutX="275.0" layoutY="81.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" text="&gt;" />
+      <Button layoutX="275.0" layoutY="150.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" text="&lt;" />
+   </children>
+</AnchorPane>
