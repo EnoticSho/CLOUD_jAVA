@@ -3,7 +3,6 @@ package com.example.client_cloud;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 
 import java.io.*;
@@ -22,12 +21,18 @@ public class CloudMainController implements Initializable {
     private ListView<String> serverView;
 
     private String currentDirectory;
+    private String serverDirectory;
 
     private DataInputStream dis;
     private DataOutputStream dos;
     private Socket socket;
 
-    private static final String SEND_FILE_COMMAND = "file";
+    private static final Integer BATCH_SIZE = 256;
+    private byte[] batch;
+
+    private static final String SEND_FILE_COMMAND = "file-to-server";
+    private static final String SEND_TO_CLIENT_FILE_COMMAND = "file-to-client";
+    private static final String DOWNLOAD_FILE= "download_file";
 
 
     public void sendToServer(ActionEvent actionEvent) {
@@ -41,6 +46,7 @@ public class CloudMainController implements Initializable {
                 dos.writeLong(file.length());
                 try (FileInputStream fileInputStream = new FileInputStream(file)){
                     byte[] bytes = fileInputStream.readAllBytes();
+                    dos.write(bytes);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -50,19 +56,45 @@ public class CloudMainController implements Initializable {
         }
     }
 
+    public void sendToClient(ActionEvent actionEvent) {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        try {
+            dos.writeUTF(SEND_TO_CLIENT_FILE_COMMAND);
+            dos.writeUTF(fileName);
+            System.out.println(fileName);
+            String command = dis.readUTF();
+            if (command.equals(DOWNLOAD_FILE)) {
+                long size = dis.readLong();
+                try (FileOutputStream outputStream = new FileOutputStream(currentDirectory + "/" + fileName)) {
+                    for (int i = 0; i < (size + BATCH_SIZE - 1); i++) {
+                        int read = dis.read(batch);
+                        outputStream.write(batch, 0, read);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }catch (Exception e) {
+            System.err.println("e = " + e.getMessage());
+        }
+    }
+
     private void initNetwork() {
         try {
             socket = new Socket("localhost", 8189);
             dis = new DataInputStream(socket.getInputStream());
             dos = new DataOutputStream(socket.getOutputStream());
-        } catch (Exception ignored) {
-        }
-
+        } catch (Exception ignored) {}
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         initNetwork();
+        try {
+            serverDirectory = dis.readUTF();
+            fillView(serverView, getFiles(serverDirectory));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         setCurrentDirectory(System.getProperty("user.home"));
         clientView.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
