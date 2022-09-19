@@ -26,14 +26,11 @@ public class CloudMainController implements Initializable {
     private DataInputStream dis;
     private DataOutputStream dos;
     private Socket socket;
-
-    private static final Integer BATCH_SIZE = 256;
-    private byte[] batch;
+    private final byte[] batch = new byte[256];
 
     private static final String SEND_FILE_COMMAND = "file-to-server";
     private static final String SEND_TO_CLIENT_FILE_COMMAND = "file-to-client";
     private static final String DOWNLOAD_FILE= "download_file";
-
 
     public void sendToServer(ActionEvent actionEvent) {
         String fileName = clientView.getSelectionModel().getSelectedItem();
@@ -45,11 +42,17 @@ public class CloudMainController implements Initializable {
                 dos.writeUTF(fileName);
                 dos.writeLong(file.length());
                 try (FileInputStream fileInputStream = new FileInputStream(file)){
-                    byte[] bytes = fileInputStream.readAllBytes();
-                    dos.write(bytes);
+                    while (fileInputStream.available() > 0) {
+                        int read = fileInputStream.read(batch);
+                        dos.write(batch, 0 , read);
+                    }
+//                    byte[] bytes = fileInputStream.readAllBytes();
+//                    dos.write(bytes);
+                    System.out.println("Файл отправлен на сервер " + fileName);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+                fillView(serverView, getFiles(dis.readUTF()));
             }catch (Exception e) {
                 System.err.println("e = " + e.getMessage());
             }
@@ -59,17 +62,19 @@ public class CloudMainController implements Initializable {
     public void sendToClient(ActionEvent actionEvent) {
         String fileName = serverView.getSelectionModel().getSelectedItem();
         try {
+            System.out.println("Получение файла с сервера " + fileName);
             dos.writeUTF(SEND_TO_CLIENT_FILE_COMMAND);
             dos.writeUTF(fileName);
-            System.out.println(fileName);
             String command = dis.readUTF();
             if (command.equals(DOWNLOAD_FILE)) {
                 long size = dis.readLong();
                 try (FileOutputStream outputStream = new FileOutputStream(currentDirectory + "/" + fileName)) {
-                    for (int i = 0; i < (size + BATCH_SIZE - 1); i++) {
+                    for (int i = 0; i < (size / batch.length) + 1; i++) {
                         int read = dis.read(batch);
                         outputStream.write(batch, 0, read);
                     }
+                    System.out.println("Файл получен " + fileName);
+                    fillView(clientView, getFiles(currentDirectory));
                 } catch (Exception ignored) {
                 }
             }
