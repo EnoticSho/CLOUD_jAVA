@@ -13,6 +13,6 @@
       <ListView fx:id="clientView" layoutX="14.0" layoutY="14.0" prefHeight="343.0" prefWidth="247.0" />
       <ListView fx:id="serverView" layoutX="339.0" layoutY="14.0" prefHeight="343.0" prefWidth="247.0" />
       <Button onAction="#sendToServer" layoutX="275.0" layoutY="81.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" text="&gt;" />
-      <Button layoutX="275.0" layoutY="150.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" text="&lt;" />
+      <Button onAction="#sendToClient" layoutX="275.0" layoutY="150.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" text="&lt;" />
    </children>
 </AnchorPane>
