@@ -21,7 +21,7 @@ public class CloudMainController implements Initializable {
     private ListView<String> serverView;
 
     private String currentDirectory;
-    private String serverDirectory;
+    private List<String> serverFiles = new ArrayList<>();
 
     private DataInputStream dis;
     private DataOutputStream dos;
@@ -46,13 +46,11 @@ public class CloudMainController implements Initializable {
                         int read = fileInputStream.read(batch);
                         dos.write(batch, 0 , read);
                     }
-//                    byte[] bytes = fileInputStream.readAllBytes();
-//                    dos.write(bytes);
                     System.out.println("Файл отправлен на сервер " + fileName);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                fillView(serverView, getFiles(dis.readUTF()));
+                fillViewServer();
             }catch (Exception e) {
                 System.err.println("e = " + e.getMessage());
             }
@@ -95,8 +93,7 @@ public class CloudMainController implements Initializable {
     public void initialize(URL url, ResourceBundle resourceBundle) {
         initNetwork();
         try {
-            serverDirectory = dis.readUTF();
-            fillView(serverView, getFiles(serverDirectory));
+            fillViewServer();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -133,5 +130,14 @@ public class CloudMainController implements Initializable {
             }
         }
         return List.of();
+    }
+
+    private void fillViewServer() throws IOException {
+        serverFiles.clear();
+        long size = dis.readLong();
+        for (int i = 0; i < size; i++) {
+            serverFiles.add(dis.readUTF());
+        }
+        fillView(serverView, serverFiles);
     }
 }
