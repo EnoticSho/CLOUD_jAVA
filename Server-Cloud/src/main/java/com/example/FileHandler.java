@@ -2,71 +2,77 @@ package com.example;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+
+import static org.example.Command.*;
+import static org.example.FileUtils.readFileFromStream;
+import static org.example.FileUtils.writeFileToStream;
 
 public class FileHandler implements Runnable {
 
+    // copy past
+    // solution - common module
     private static final String SERVER_DIR = "server_files";
-    private static final String SEND_FILE_COMMAND = "file-to-server";
-    private static final String SEND_TO_CLIENT_FILE_COMMAND = "file-to-client";
-    private static final String DOWNLOAD_FILE = "download_file";
 
     private static final Integer BATCH_SIZE = 256;
-    private byte[] batch;
 
-    private List<String> listOfFiles;
+    private final Socket socket;
 
-    private Socket socket;
+    private final DataInputStream dis;
 
     private final DataOutputStream dos;
-    private final DataInputStream dis;
+
+    private byte[] batch;
 
     public FileHandler(Socket socket) throws IOException {
         this.socket = socket;
-        this.dos = new DataOutputStream(socket.getOutputStream());
-        this.dis = new DataInputStream(socket.getInputStream());
+        dis = new DataInputStream(socket.getInputStream());
+        dos = new DataOutputStream(socket.getOutputStream());
         batch = new byte[BATCH_SIZE];
         File file = new File(SERVER_DIR);
         if (!file.exists()) {
             file.mkdir();
         }
+        sendServerFiles();
+        System.out.println("Client accepted...");
+    }
+
+    private void sendServerFiles() throws IOException {
+        File dir = new File(SERVER_DIR);
+        String[] files = dir.list();
+        assert files != null;
+        dos.writeUTF(GET_FILES_LIST_COMMAND.getSimpleName());
+        dos.writeInt(files.length);
+        for (String file : files) {
+            dos.writeUTF(file);
+        }
+        dos.flush();
+        System.out.println(files.length + " files sent to client");
     }
 
     @Override
     public void run() {
-        System.out.println("Start Listening...");
         try {
-            directoryFiles();
+            System.out.println("Start listening...");
             while (true) {
                 String command = dis.readUTF();
-                System.out.println(command);
-                if (command.equals(SEND_FILE_COMMAND)) {
-                    System.out.println("Загрузка файла на сервер");
+                System.out.println("Received command: " + command);
+                if (command.equals(SEND_FILE_COMMAND.getSimpleName())) {
+                    readFileFromStream(dis, SERVER_DIR);
+                    sendServerFiles();
+                } else if (GET_FILE_COMMAND.getSimpleName().equals(command)) {
                     String fileName = dis.readUTF();
-                    long size = dis.readLong();
-                    try (FileOutputStream outputStream = new FileOutputStream(SERVER_DIR + "/" + fileName)) {
-                        for (int i = 0; i < (size / BATCH_SIZE) + 1; i++) {
-                            int read = dis.read(batch);
-                            outputStream.write(batch, 0, read);
-                        }
-                    } catch (Exception ignored) {}
-                    directoryFiles();
-                    System.out.println("файл закачен на сервер " + fileName);
-                } else if (command.equals(SEND_TO_CLIENT_FILE_COMMAND)) {
-                    System.out.println("Отправка файла клиенту");
-                    String fileName = dis.readUTF();
-                    File serverFile = new File(SERVER_DIR + "/" + fileName);
-                    if (serverFile.isFile()) {
+                    String filePath = SERVER_DIR + "/" + fileName;
+                    File file = new File(filePath);
+                    if (file.isFile()) {
                         try {
-                            dos.writeUTF(DOWNLOAD_FILE);
-                            dos.writeLong(serverFile.length());
-                            try (FileInputStream fileInputStream = new FileInputStream(serverFile)) {
-                                byte[] bytes = fileInputStream.readAllBytes();
+                            System.out.println("File: " + fileName + " sent to server");
+                            dos.writeUTF(SEND_FILE_COMMAND.getSimpleName());
+                            dos.writeUTF(fileName);
+                            dos.writeLong(file.length());
+                            try (FileInputStream fis = new FileInputStream(file)) {
+                                byte[] bytes = fis.readAllBytes();
                                 dos.write(bytes);
-                                System.out.println("файл отправлен клиенту " + fileName);
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }
@@ -79,19 +85,7 @@ public class FileHandler implements Runnable {
                 }
             }
         } catch (Exception ignored) {
-        }
-    }
-
-    private void directoryFiles() throws IOException {
-        File dir = new File(SERVER_DIR);
-        if (dir.isDirectory()) {
-            listOfFiles = List.of(dir.list());
-            dos.writeLong(listOfFiles.size());
-            if (listOfFiles != null) {
-                for (int i = 0; i < listOfFiles.size(); i++) {
-                    dos.writeUTF(listOfFiles.get(i));
-                }
-            }
+            System.out.println("Client disconnected...");
         }
     }
 }

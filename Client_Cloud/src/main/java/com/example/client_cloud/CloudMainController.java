@@ -1,9 +1,10 @@
 package com.example.client_cloud;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import org.example.DaemonThreadFactory;
 
 import java.io.*;
 import java.net.Socket;
@@ -13,24 +14,30 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
+import static org.example.Command.*;
+import static org.example.FileUtils.readFileFromStream;
+
 public class CloudMainController implements Initializable {
-
-    @FXML
-    private ListView<String> clientView;
-    @FXML
-    private ListView<String> serverView;
-
+    public ListView<String> clientView;
+    public ListView<String> serverView;
     private String currentDirectory;
-    private List<String> serverFiles = new ArrayList<>();
 
     private DataInputStream dis;
-    private DataOutputStream dos;
-    private Socket socket;
-    private final byte[] batch = new byte[256];
 
-    private static final String SEND_FILE_COMMAND = "file-to-server";
-    private static final String SEND_TO_CLIENT_FILE_COMMAND = "file-to-client";
-    private static final String DOWNLOAD_FILE= "download_file";
+    private DataOutputStream dos;
+
+    private Socket socket;
+
+    private boolean needReadMessages = true;
+
+    private DaemonThreadFactory factory;
+
+    public void downloadFile(ActionEvent actionEvent) throws IOException {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        dos.writeUTF(GET_FILE_COMMAND.getSimpleName());
+        dos.writeUTF(fileName);
+        dos.flush();
+    }
 
     public void sendToServer(ActionEvent actionEvent) {
         String fileName = clientView.getSelectionModel().getSelectedItem();
@@ -38,46 +45,43 @@ public class CloudMainController implements Initializable {
         File file = new File(filePath);
         if (file.isFile()) {
             try {
-                dos.writeUTF(SEND_FILE_COMMAND);
+                System.out.println("File: " + fileName + " sent to server");
+                dos.writeUTF(SEND_FILE_COMMAND.getSimpleName());
                 dos.writeUTF(fileName);
                 dos.writeLong(file.length());
-                try (FileInputStream fileInputStream = new FileInputStream(file)){
-                    while (fileInputStream.available() > 0) {
-                        int read = fileInputStream.read(batch);
-                        dos.write(batch, 0 , read);
-                    }
-                    System.out.println("Файл отправлен на сервер " + fileName);
+                try (FileInputStream fis = new FileInputStream(file)) {
+                    byte[] bytes = fis.readAllBytes();
+                    dos.write(bytes);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                fillViewServer();
-            }catch (Exception e) {
+            } catch (Exception e) {
                 System.err.println("e = " + e.getMessage());
             }
         }
     }
 
-    public void sendToClient(ActionEvent actionEvent) {
-        String fileName = serverView.getSelectionModel().getSelectedItem();
+    private void readMessages() {
         try {
-            System.out.println("Получение файла с сервера " + fileName);
-            dos.writeUTF(SEND_TO_CLIENT_FILE_COMMAND);
-            dos.writeUTF(fileName);
-            String command = dis.readUTF();
-            if (command.equals(DOWNLOAD_FILE)) {
-                long size = dis.readLong();
-                try (FileOutputStream outputStream = new FileOutputStream(currentDirectory + "/" + fileName)) {
-                    for (int i = 0; i < (size / batch.length) + 1; i++) {
-                        int read = dis.read(batch);
-                        outputStream.write(batch, 0, read);
+            while (needReadMessages) {
+                String command = dis.readUTF();
+                if (SEND_FILE_COMMAND.getSimpleName().equals(command)) {
+                    readFileFromStream(dis, currentDirectory);
+                    Platform.runLater(() -> fillView(clientView, getFiles(currentDirectory)));
+                } else if (GET_FILES_LIST_COMMAND.getSimpleName().equals(command)) {
+                    System.out.println("Received command: " + GET_FILES_LIST_COMMAND.getSimpleName());
+                    List<String> files = new ArrayList<>();
+                    int size = dis.readInt();
+                    for (int i = 0; i < size; i++) {
+                        String file = dis.readUTF();
+                        files.add(file);
                     }
-                    System.out.println("Файл получен " + fileName);
-                    fillView(clientView, getFiles(currentDirectory));
-                } catch (Exception ignored) {
+                    // concurrent set views values
+                    Platform.runLater(() -> fillView(serverView, files));
                 }
             }
-        }catch (Exception e) {
-            System.err.println("e = " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Server off");
         }
     }
 
@@ -86,18 +90,20 @@ public class CloudMainController implements Initializable {
             socket = new Socket("localhost", 8189);
             dis = new DataInputStream(socket.getInputStream());
             dos = new DataOutputStream(socket.getOutputStream());
-        } catch (Exception ignored) {}
+            factory.getThread(this::readMessages, "cloud-client-read-thread")
+                    .start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        needReadMessages = true;
+        factory = new DaemonThreadFactory();
         initNetwork();
-        try {
-            fillViewServer();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         setCurrentDirectory(System.getProperty("user.home"));
+        fillView(clientView, getFiles(currentDirectory));
         clientView.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
                 String selected = clientView.getSelectionModel().getSelectedItem();
@@ -120,6 +126,8 @@ public class CloudMainController implements Initializable {
     }
 
     private List<String> getFiles(String directory) {
+        // file.txt 125 b
+        // dir [DIR]
         File dir = new File(directory);
         if (dir.isDirectory()) {
             String[] list = dir.list();
@@ -132,12 +140,4 @@ public class CloudMainController implements Initializable {
         return List.of();
     }
 
-    private void fillViewServer() throws IOException {
-        serverFiles.clear();
-        long size = dis.readLong();
-        for (int i = 0; i < size; i++) {
-            serverFiles.add(dis.readUTF());
-        }
-        fillView(serverView, serverFiles);
-    }
 }
