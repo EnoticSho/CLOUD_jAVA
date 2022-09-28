@@ -4,13 +4,16 @@ import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.AnchorPane;
 import org.example.DaemonThreadFactory;
-import org.example.model.CloudMessage;
-import org.example.model.FileMessage;
-import org.example.model.FileRequest;
-import org.example.model.ListMessage;
+import org.example.model.*;
 
 import java.io.*;
 import java.net.Socket;
@@ -22,13 +25,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import static org.example.Command.*;
-import static org.example.FileUtils.readFileFromStream;
-
 public class CloudMainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
+    public TextField CreateDir;
+    @FXML
+    private AnchorPane DirectoryField;
     private String currentDirectory;
+
 
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
 
@@ -94,6 +98,17 @@ public class CloudMainController implements Initializable {
                 }
             }
         });
+
+        serverView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                String selected = serverView.getSelectionModel().getSelectedItem();
+                try {
+                    network.getOutputStream().writeObject(new DirectoryRequest(selected));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void setCurrentDirectory(String directory) {
@@ -119,4 +134,19 @@ public class CloudMainController implements Initializable {
         return List.of();
     }
 
+    public void openTextField(ActionEvent actionEvent) {
+        DirectoryField.setVisible(true);
+        CreateDir.setOnKeyPressed(keyEvent -> {
+            if (keyEvent.getCode() == KeyCode.ENTER) {
+                String dirName = CreateDir.getText();
+                try {
+                    network.getOutputStream().writeObject(new DirectoryRequest(dirName));
+                    DirectoryField.setVisible(false);
+                    CreateDir.setText("");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
 }

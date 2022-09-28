@@ -3,11 +3,9 @@ package com.example.netty.serial;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.example.model.CloudMessage;
-import org.example.model.FileMessage;
-import org.example.model.FileRequest;
-import org.example.model.ListMessage;
+import org.example.model.*;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -24,6 +22,22 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
             channelHandlerContext.writeAndFlush(new ListMessage(serverDir));
         } else if (cloudMessage instanceof FileRequest fr) {
             channelHandlerContext.writeAndFlush(new FileMessage(serverDir.resolve(fr.getFilename())));
+        } else if (cloudMessage instanceof DirectoryRequest dr) {
+            Path path = Path.of(serverDir + "/" + dr.getDirectoryName());
+//            if (!Files.isDirectory(path) && !Files.exists(path)) {
+//                Files.createDirectory(path);
+//                channelHandlerContext.writeAndFlush(new ListMessage(serverDir));
+//            } else if (Files.isDirectory(path)) {
+//                channelHandlerContext.writeAndFlush(new ListMessage(path));
+//            }
+            if (Files.isDirectory(path))  {
+                if (path.equals("server_files")) {
+                    channelHandlerContext.writeAndFlush(new ListMessage(path));
+                }else {
+                    channelHandlerContext.writeAndFlush(new ListMessage(path, 1));
+                }
+                serverDir = path;
+            }
         }
     }
 
