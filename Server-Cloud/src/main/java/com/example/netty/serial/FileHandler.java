@@ -13,30 +13,28 @@ import java.nio.file.Path;
 public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
 
     private Path serverDir;
+    private Path currentServerDir;
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, CloudMessage cloudMessage) throws Exception {
         log.debug("Received: {}", cloudMessage.getType());
         if (cloudMessage instanceof FileMessage fm) {
-            Files.write(serverDir.resolve(fm.getFileName()), fm.getBytes());
-            channelHandlerContext.writeAndFlush(new ListMessage(serverDir));
+            Files.write(currentServerDir.resolve(fm.getFileName()), fm.getBytes());
+            channelHandlerContext.writeAndFlush(new ListMessage(currentServerDir));
         } else if (cloudMessage instanceof FileRequest fr) {
-            channelHandlerContext.writeAndFlush(new FileMessage(serverDir.resolve(fr.getFilename())));
+            channelHandlerContext.writeAndFlush(new FileMessage(currentServerDir.resolve(fr.getFilename())));
         } else if (cloudMessage instanceof DirectoryRequest dr) {
-            Path path = Path.of(serverDir + "/" + dr.getDirectoryName());
-//            if (!Files.isDirectory(path) && !Files.exists(path)) {
-//                Files.createDirectory(path);
-//                channelHandlerContext.writeAndFlush(new ListMessage(serverDir));
-//            } else if (Files.isDirectory(path)) {
-//                channelHandlerContext.writeAndFlush(new ListMessage(path));
-//            }
-            if (Files.isDirectory(path))  {
-                if (path.equals("server_files")) {
+            Path path = Path.of(currentServerDir + "/" + dr.getDirectoryName()).normalize();
+            if (!Files.isDirectory(path)) {
+                Files.createDirectory(path);
+                channelHandlerContext.writeAndFlush(new ListMessage(currentServerDir));
+            } else if (Files.isDirectory(path)) {
+                if (path.equals(serverDir)) {
                     channelHandlerContext.writeAndFlush(new ListMessage(path));
                 }else {
-                    channelHandlerContext.writeAndFlush(new ListMessage(path, 1));
+                    channelHandlerContext.writeAndFlush(new ListMessage(path, ""));
                 }
-                serverDir = path;
+                currentServerDir = path;
             }
         }
     }
@@ -44,6 +42,7 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         serverDir = Path.of("server_files");
+        currentServerDir = serverDir;
         ctx.writeAndFlush(new ListMessage(serverDir));
     }
 }
