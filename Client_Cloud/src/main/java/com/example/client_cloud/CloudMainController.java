@@ -3,6 +3,7 @@ package com.example.client_cloud;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 
 import java.io.*;
@@ -21,16 +22,13 @@ public class CloudMainController implements Initializable {
     private ListView<String> serverView;
 
     private String currentDirectory;
-    private List<String> serverFiles = new ArrayList<>();
 
     private DataInputStream dis;
     private DataOutputStream dos;
     private Socket socket;
-    private final byte[] batch = new byte[256];
 
-    private static final String SEND_FILE_COMMAND = "file-to-server";
-    private static final String SEND_TO_CLIENT_FILE_COMMAND = "file-to-client";
-    private static final String DOWNLOAD_FILE= "download_file";
+    private static final String SEND_FILE_COMMAND = "file";
+
 
     public void sendToServer(ActionEvent actionEvent) {
         String fileName = clientView.getSelectionModel().getSelectedItem();
@@ -42,42 +40,13 @@ public class CloudMainController implements Initializable {
                 dos.writeUTF(fileName);
                 dos.writeLong(file.length());
                 try (FileInputStream fileInputStream = new FileInputStream(file)){
-                    while (fileInputStream.available() > 0) {
-                        int read = fileInputStream.read(batch);
-                        dos.write(batch, 0 , read);
-                    }
-                    System.out.println("Файл отправлен на сервер " + fileName);
+                    byte[] bytes = fileInputStream.readAllBytes();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                fillViewServer();
             }catch (Exception e) {
                 System.err.println("e = " + e.getMessage());
             }
-        }
-    }
-
-    public void sendToClient(ActionEvent actionEvent) {
-        String fileName = serverView.getSelectionModel().getSelectedItem();
-        try {
-            System.out.println("Получение файла с сервера " + fileName);
-            dos.writeUTF(SEND_TO_CLIENT_FILE_COMMAND);
-            dos.writeUTF(fileName);
-            String command = dis.readUTF();
-            if (command.equals(DOWNLOAD_FILE)) {
-                long size = dis.readLong();
-                try (FileOutputStream outputStream = new FileOutputStream(currentDirectory + "/" + fileName)) {
-                    for (int i = 0; i < (size / batch.length) + 1; i++) {
-                        int read = dis.read(batch);
-                        outputStream.write(batch, 0, read);
-                    }
-                    System.out.println("Файл получен " + fileName);
-                    fillView(clientView, getFiles(currentDirectory));
-                } catch (Exception ignored) {
-                }
-            }
-        }catch (Exception e) {
-            System.err.println("e = " + e.getMessage());
         }
     }
 
@@ -86,17 +55,14 @@ public class CloudMainController implements Initializable {
             socket = new Socket("localhost", 8189);
             dis = new DataInputStream(socket.getInputStream());
             dos = new DataOutputStream(socket.getOutputStream());
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
+
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         initNetwork();
-        try {
-            fillViewServer();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         setCurrentDirectory(System.getProperty("user.home"));
         clientView.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
@@ -130,14 +96,5 @@ public class CloudMainController implements Initializable {
             }
         }
         return List.of();
-    }
-
-    private void fillViewServer() throws IOException {
-        serverFiles.clear();
-        long size = dis.readLong();
-        for (int i = 0; i < size; i++) {
-            serverFiles.add(dis.readUTF());
-        }
-        fillView(serverView, serverFiles);
     }
 }
