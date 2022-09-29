@@ -4,13 +4,14 @@ import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.AnchorPane;
 import org.example.DaemonThreadFactory;
-import org.example.model.CloudMessage;
-import org.example.model.FileMessage;
-import org.example.model.FileRequest;
-import org.example.model.ListMessage;
+import org.example.model.*;
 
 import java.io.*;
 import java.net.Socket;
@@ -22,32 +23,29 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import static org.example.Command.*;
-import static org.example.FileUtils.readFileFromStream;
-
 public class CloudMainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
+    @FXML
+    public TextField CreateDir;
+    @FXML
+    private AnchorPane DirectoryField;
     private String currentDirectory;
+
 
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
 
     private Socket socket;
-
     private boolean needReadMessages = true;
-
     private DaemonThreadFactory factory;
-
     public void downloadFile(ActionEvent actionEvent) throws IOException {
         String fileName = serverView.getSelectionModel().getSelectedItem();
         network.getOutputStream().writeObject(new FileRequest(fileName));
     }
-
     public void sendToServer(ActionEvent actionEvent) throws IOException {
         String fileName = clientView.getSelectionModel().getSelectedItem();
         network.getOutputStream().writeObject(new FileMessage(Path.of(currentDirectory).resolve(fileName)));
     }
-
     private void readMessages() {
         try {
             while (needReadMessages) {
@@ -64,7 +62,6 @@ public class CloudMainController implements Initializable {
             e.printStackTrace();
         }
     }
-
     private void initNetwork() {
         try {
             socket = new Socket("localhost", 8189);
@@ -77,7 +74,6 @@ public class CloudMainController implements Initializable {
             e.printStackTrace();
         }
     }
-
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         needReadMessages = true;
@@ -94,18 +90,27 @@ public class CloudMainController implements Initializable {
                 }
             }
         });
+
+        serverView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                String selected = serverView.getSelectionModel().getSelectedItem();
+                try {
+                    network.getOutputStream().writeObject(new DirectoryRequest(selected));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void setCurrentDirectory(String directory) {
         currentDirectory = directory;
         fillView(clientView, getFiles(currentDirectory));
     }
-
     private void fillView(ListView<String> view, List<String> data) {
         view.getItems().clear();
         view.getItems().addAll(data);
     }
-
     private List<String> getFiles(String directory) {
         File dir = new File(directory);
         if (dir.isDirectory()) {
@@ -119,4 +124,19 @@ public class CloudMainController implements Initializable {
         return List.of();
     }
 
+    public void openTextField(ActionEvent actionEvent) {
+        DirectoryField.setVisible(true);
+        CreateDir.setOnKeyPressed(keyEvent -> {
+            if (keyEvent.getCode() == KeyCode.ENTER) {
+                String dirName = CreateDir.getText();
+                try {
+                    network.getOutputStream().writeObject(new DirectoryRequest(dirName));
+                    DirectoryField.setVisible(false);
+                    CreateDir.setText("");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
 }
