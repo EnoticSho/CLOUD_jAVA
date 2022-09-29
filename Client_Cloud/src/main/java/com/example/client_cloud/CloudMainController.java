@@ -13,7 +13,8 @@ import javafx.scene.layout.AnchorPane;
 import org.example.DaemonThreadFactory;
 import org.example.model.*;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
@@ -89,16 +90,24 @@ public class CloudMainController implements Initializable {
                     setCurrentDirectory(currentDirectory + "/" + selected);
                 }
             }
+            if (event.getClickCount() == 1) {
+                serverView.getSelectionModel().clearSelection();
+            }
         });
 
         serverView.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
                 String selected = serverView.getSelectionModel().getSelectedItem();
-                try {
-                    network.getOutputStream().writeObject(new DirectoryRequest(selected));
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if (selected != null) {
+                    try {
+                        network.getOutputStream().writeObject(new DirectoryRequest(selected));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
+            }
+            if (event.getClickCount() == 1) {
+                clientView.getSelectionModel().clearSelection();
             }
         });
     }
@@ -126,6 +135,7 @@ public class CloudMainController implements Initializable {
 
     public void openTextField(ActionEvent actionEvent) {
         DirectoryField.setVisible(true);
+        CreateDir.setPromptText("ENTER DIRECTORY NAME");
         CreateDir.setOnKeyPressed(keyEvent -> {
             if (keyEvent.getCode() == KeyCode.ENTER) {
                 String dirName = CreateDir.getText();
@@ -138,5 +148,61 @@ public class CloudMainController implements Initializable {
                 }
             }
         });
+    }
+
+    public void deleteFile(ActionEvent actionEvent) throws IOException {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        if (fileName != null) {
+            network.getOutputStream().writeObject(new FileDelete(fileName));
+        } else {
+            fileName = clientView.getSelectionModel().getSelectedItem();
+            if (fileName != null) {
+                Path path = Path.of(currentDirectory + "/" + fileName);
+                if (Files.exists(path) && !Files.isDirectory(path)) {
+                    Files.delete(path);
+                    fillView(clientView, getFiles(currentDirectory));
+                }
+            }
+        }
+    }
+
+    public void renameFile(ActionEvent actionEvent) throws IOException {
+        String fileOldName = serverView.getSelectionModel().getSelectedItem();
+        if (fileOldName != null) {
+            DirectoryField.setVisible(true);
+            CreateDir.setPromptText("ENTER NEW FILE NAME");
+            final String a = fileOldName;
+            CreateDir.setOnKeyPressed(keyEvent -> {
+                if (keyEvent.getCode() == KeyCode.ENTER) {
+                    String fileNewName = CreateDir.getText();
+                    try {
+                        network.getOutputStream().writeObject(new FileRename(fileNewName, a));
+                        DirectoryField.setVisible(false);
+                        CreateDir.setText("");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        } else {
+            fileOldName = clientView.getSelectionModel().getSelectedItem();
+            if (fileOldName != null) {
+                File oldFile = new File(currentDirectory + "/" + fileOldName);
+                if (!Files.isDirectory(oldFile.toPath())) {
+                    DirectoryField.setVisible(true);
+                    CreateDir.setPromptText("ENTER NEW FILE NAME");
+                    CreateDir.setOnKeyPressed(keyEvent -> {
+                        if (keyEvent.getCode() == KeyCode.ENTER) {
+                            String fileNewName = CreateDir.getText();
+                            File newFile = new File(currentDirectory + "/" + fileNewName);
+                            oldFile.renameTo(newFile);
+                            DirectoryField.setVisible(false);
+                            CreateDir.setText("");
+                        }
+                    });
+                    fillView(clientView, getFiles(currentDirectory));
+                }
+            }
+        }
     }
 }

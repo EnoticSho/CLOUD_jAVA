@@ -16,26 +16,37 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
     private Path currentServerDir;
 
     @Override
-    protected void channelRead0(ChannelHandlerContext channelHandlerContext, CloudMessage cloudMessage) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, CloudMessage cloudMessage) throws Exception {
         log.debug("Received: {}", cloudMessage.getType());
         if (cloudMessage instanceof FileMessage fm) {
             Files.write(currentServerDir.resolve(fm.getFileName()), fm.getBytes());
-            channelHandlerContext.writeAndFlush(new ListMessage(currentServerDir));
         } else if (cloudMessage instanceof FileRequest fr) {
-            channelHandlerContext.writeAndFlush(new FileMessage(currentServerDir.resolve(fr.getFilename())));
+            ctx.writeAndFlush(new FileMessage(currentServerDir.resolve(fr.getFilename())));
         } else if (cloudMessage instanceof DirectoryRequest dr) {
             Path path = Path.of(currentServerDir + "/" + dr.getDirectoryName()).normalize();
             if (!Files.isDirectory(path)) {
                 Files.createDirectory(path);
-                channelHandlerContext.writeAndFlush(new ListMessage(currentServerDir));
             } else if (Files.isDirectory(path)) {
-                if (path.equals(serverDir)) {
-                    channelHandlerContext.writeAndFlush(new ListMessage(path));
-                }else {
-                    channelHandlerContext.writeAndFlush(new ListMessage(path, ""));
-                }
                 currentServerDir = path;
             }
+        } else if (cloudMessage instanceof FileDelete fd) {
+            Path path = currentServerDir.resolve(fd.getFileName());
+            if (Files.exists(path) && !Files.isDirectory(path)) {
+                Files.delete(path);
+            }
+        } else if (cloudMessage instanceof FileRename fr) {
+            Path path = currentServerDir.resolve(fr.getOldFileName());
+            File oldFile = new File(path.toString());
+            path = currentServerDir.resolve(fr.getNewFileName());
+            File newFIle = new File(path.toString());
+            if (Files.exists(oldFile.toPath()) && !Files.isDirectory(oldFile.toPath())) {
+                oldFile.renameTo(newFIle);
+            }
+        }
+        if (currentServerDir.equals(serverDir)) {
+            ctx.writeAndFlush(new ListMessage(currentServerDir));
+        }else {
+            ctx.writeAndFlush(new ListMessage(currentServerDir, ""));
         }
     }
 
