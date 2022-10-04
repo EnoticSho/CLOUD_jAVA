@@ -4,5 +4,6 @@ public enum MessageType {
     LIST,
     FILE_REQUEST,
     DIRECTORY_REQUEST,
-    File
+    FILE_DELETE,
+    FILE_RENAME, File
 }
