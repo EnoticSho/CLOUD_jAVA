@@ -3,47 +3,11 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="427.0" prefWidth="606.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client_cloud.CloudMainController">
-   <children>
-      <Pane fx:id="SignUp" layoutX="136.0" layoutY="56.0" prefHeight="241.0" prefWidth="281.0" visible="false">
-         <children>
-            <Label layoutX="14.0" layoutY="39.0" text="Login" />
-            <Label layoutX="14.0" layoutY="90.0" text="Password" />
-            <Button layoutX="196.0" layoutY="137.0" mnemonicParsing="false" onAction="#signUP" text="Sing up" />
-            <TextField fx:id="signUP_field_login" layoutX="93.0" layoutY="35.0" />
-            <TextField fx:id="signUP_field_password" layoutX="93.0" layoutY="86.0" />
-         </children>
-      </Pane>
-      <AnchorPane fx:id="main_pane" layoutX="-1.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="427.0" prefWidth="606.0" visible="false">
-         <children>
-            <ListView fx:id="clientView" layoutX="14.0" layoutY="14.0" prefHeight="343.0" prefWidth="247.0" />
-            <ListView fx:id="serverView" layoutX="339.0" layoutY="14.0" prefHeight="343.0" prefWidth="247.0" />
-            <Button layoutX="275.0" layoutY="80.0" mnemonicParsing="false" onAction="#sendToServer" prefHeight="50.0" prefWidth="50.0" text="&gt;" />
-            <Button layoutX="275.0" layoutY="151.0" mnemonicParsing="false" onAction="#downloadFile" prefHeight="50.0" prefWidth="50.0" text="&lt;" />
-            <Button layoutX="265.0" layoutY="369.0" mnemonicParsing="false" onAction="#openTextField" prefHeight="38.0" prefWidth="120.0" text="Create а folder" />
-            <Button layoutX="14.0" layoutY="369.0" mnemonicParsing="false" onAction="#deleteFile" prefHeight="38.0" prefWidth="120.0" text="Delete a file" />
-            <Button layoutX="140.0" layoutY="369.0" mnemonicParsing="false" onAction="#renameFile" prefHeight="38.0" prefWidth="120.0" text="Rename a file" />
-            <AnchorPane fx:id="DirectoryField" layoutX="200.0" layoutY="105.0" prefHeight="141.0" prefWidth="200.0" visible="false">
-               <children>
-                  <TextField fx:id="CreateDir" layoutX="26.0" layoutY="58.0" />
-               </children>
-            </AnchorPane>
-         </children>
-      </AnchorPane>
-      <Pane fx:id="Start_Window" prefHeight="427.0" prefWidth="606.0" visible="false">
-         <children>
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="427.0" prefWidth="606.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client_cloud.CloudMainController">
+    <Pane fx:id="Start_Window" prefHeight="427.0" prefWidth="606.0">
+        <children>
             <Button layoutX="48.0" layoutY="55.0" mnemonicParsing="false" onAction="#sign_in" prefHeight="50.0" prefWidth="156.0" text="sign in" />
             <Button layoutX="225.0" layoutY="55.0" mnemonicParsing="false" onAction="#sign_up" prefHeight="50.0" prefWidth="156.0" text="sign up" />
-         </children>
-      </Pane>
-      <Pane fx:id="logIn" layoutX="194.0" layoutY="78.0" prefHeight="241.0" prefWidth="200.0" visible="false">
-         <children>
-            <Button layoutX="56.0" layoutY="178.0" mnemonicParsing="false" onAction="#log_in" prefHeight="32.0" prefWidth="88.0" text="sign in" />
-            <TextField fx:id="login_in" layoutX="15.0" layoutY="60.0" promptText="enter login" />
-            <TextField fx:id="password_in" layoutX="15.0" layoutY="132.0" promptText="enter password" />
-            <Label layoutX="15.0" layoutY="18.0" prefHeight="32.0" prefWidth="50.0" text="Login" />
-            <Label layoutX="14.0" layoutY="105.0" text="Password" />
-         </children>
-      </Pane>
-      </children>
+        </children>
+    </Pane>
 </AnchorPane>

@@ -82,5 +82,6 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         serverDir = Path.of("server_files");
+        currentServerDir = serverDir;
     }
 }

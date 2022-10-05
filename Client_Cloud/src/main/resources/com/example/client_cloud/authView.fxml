@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="239.0" prefWidth="199.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client_cloud.CloudMainController">
+    <Pane fx:id="logIn" prefHeight="225.0" prefWidth="199.0">
+        <children>
+            <Button layoutX="56.0" layoutY="178.0" mnemonicParsing="false" onAction="#log_in" prefHeight="32.0" prefWidth="88.0" text="sign in" />
+            <TextField fx:id="login_in" layoutX="15.0" layoutY="60.0" promptText="enter login" />
+            <TextField fx:id="password_in" layoutX="15.0" layoutY="132.0" promptText="enter password" />
+            <Label layoutX="15.0" layoutY="18.0" prefHeight="32.0" prefWidth="50.0" text="Login" />
+            <Label layoutX="14.0" layoutY="105.0" text="Password" />
+        </children>
+    </Pane>
+</AnchorPane>
