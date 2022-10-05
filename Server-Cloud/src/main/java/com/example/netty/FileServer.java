@@ -1,5 +1,6 @@
 package com.example.netty;
 
+import com.example.netty.Database.DBAuthService;
 import com.example.netty.serial.FileHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -21,7 +22,7 @@ public class FileServer {
         EventLoopGroup auth = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup();
 
-        try {
+        try (DBAuthService authService = new DBAuthService()){
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(auth, worker)
                     .channel(NioServerSocketChannel.class)
@@ -31,7 +32,7 @@ public class FileServer {
                             socketChannel.pipeline().addLast(
                                     new ObjectDecoder(ClassResolvers.cacheDisabled(null)),
                                     new ObjectEncoder(),
-                                    new FileHandler()
+                                    new FileHandler(authService)
                             );
                         }
                     });

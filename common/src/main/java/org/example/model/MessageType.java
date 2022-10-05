@@ -7,5 +7,5 @@ public enum MessageType {
     FILE_DELETE,
     FILE_RENAME,
     AUTH,
-    AUTH_OK, File
+    AUTH_OK, ERROR_MESSAGE, REGISTRATION, REG_OK, File
 }

@@ -6,13 +6,11 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.ListView;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Pane;
 import org.example.DaemonThreadFactory;
 import org.example.model.*;
 
@@ -28,20 +26,33 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 public class CloudMainController implements Initializable {
+
+
+    private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
+    private Socket socket;
+    private boolean needReadMessages = true;
+    private boolean needAuthMessage = true;
+    private DaemonThreadFactory factory;
+
+
     public ListView<String> clientView;
     public ListView<String> serverView;
     @FXML
     public TextField CreateDir;
+    public Pane Start_Window;
+    public Pane logIn;
+    public Pane SignUp;
+    public TextField login_in;
+    public TextField password_in;
+    public AnchorPane main_pane;
+    @FXML
+    public TextField signUP_field_login;
+    @FXML
+    public TextField signUP_field_password;
     @FXML
     private AnchorPane DirectoryField;
     private ContextMenu cm;
     private String currentDirectory;
-
-    private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
-
-    private Socket socket;
-    private boolean needReadMessages = true;
-    private DaemonThreadFactory factory;
 
     public void downloadFile(ActionEvent actionEvent) throws IOException {
         String fileName = serverView.getSelectionModel().getSelectedItem();
@@ -53,7 +64,27 @@ public class CloudMainController implements Initializable {
         network.getOutputStream().writeObject(new FileMessage(Path.of(currentDirectory).resolve(fileName)));
     }
 
+    private void auth() {
+        Start_Window.setVisible(true);
+        try {
+            while (needAuthMessage) {
+                CloudMessage cloudMessage = (CloudMessage) network.getInputStream().readObject();
+                if (cloudMessage instanceof AuthOk ao) {
+                    needAuthMessage = false;
+                    logIn.setVisible(false);
+                } else if (cloudMessage instanceof ErrorMessage em) {
+                    Platform.runLater(() -> showError(em.getErrorMessage()));
+                } else if (cloudMessage instanceof RegistrationSuccessMessage rsm) {
+                    SignUp.setVisible(false);
+                    Start_Window.setVisible(true);
+                }
+            }
+        } catch (Exception ignored) {}
+        Start_Window.setVisible(false);
+    }
+
     private void readMessages() {
+        main_pane.setVisible(true);
         try {
             while (needReadMessages) {
                 CloudMessage cloudMessage = (CloudMessage) network.getInputStream().readObject();
@@ -68,6 +99,7 @@ public class CloudMainController implements Initializable {
             System.err.println("Server off");
             e.printStackTrace();
         }
+        main_pane.setVisible(false);
     }
 
     private void initNetwork() {
@@ -76,7 +108,10 @@ public class CloudMainController implements Initializable {
             network = new Network<>(
                     new ObjectDecoderInputStream(socket.getInputStream()),
                     new ObjectEncoderOutputStream(socket.getOutputStream()));
-            factory.getThread(this::readMessages, "cloud-client-read-thread")
+            factory.getThread(() -> {
+                        CloudMainController.this.auth();
+                        CloudMainController.this.readMessages();
+                    }, "cloud-client-read-thread")
                     .start();
         } catch (Exception e) {
             e.printStackTrace();
@@ -85,7 +120,6 @@ public class CloudMainController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        needReadMessages = true;
         factory = new DaemonThreadFactory();
         initNetwork();
         contextMenuInitialize();
@@ -263,5 +297,29 @@ public class CloudMainController implements Initializable {
                 }
             }
         }
+    }
+
+    public void showError(String error) {
+        final Alert alert = new Alert(Alert.AlertType.ERROR, error, new ButtonType("OK", ButtonBar.ButtonData.OK_DONE));
+        alert.setTitle("Ошибка!");
+        alert.showAndWait();
+    }
+
+    public void sign_in(ActionEvent actionEvent) {
+        Start_Window.setVisible(false);
+        logIn.setVisible(true);
+    }
+
+    public void sign_up(ActionEvent actionEvent) {
+        Start_Window.setVisible(false);
+        SignUp.setVisible(true);
+    }
+
+    public void log_in(ActionEvent actionEvent) throws IOException {
+        network.getOutputStream().writeObject(new AuthMessage(login_in.getText(), password_in.getText()));
+    }
+
+    public void signUP(ActionEvent actionEvent) throws IOException {
+        network.getOutputStream().writeObject(new RegistrationMessage(signUP_field_login.getText(), signUP_field_password.getText()));
     }
 }
