@@ -18,35 +18,32 @@ import java.util.List;
 
 
 public class Client {
-
-    private final CloudMainController controller;
+    private CloudMainController controller;
+    private final AuthController authController;
     private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
     private Socket socket;
     private boolean needReadMessages = true;
-    private boolean needAuthMessage = true;
     private final DaemonThreadFactory factory;
     private String currentDirectory;
 
 
-    public Client(CloudMainController controller) {
-        this.controller = controller;
+    public Client(AuthController authController) {
+        this.authController = authController;
         factory = new DaemonThreadFactory();
         initNetwork();
     }
 
     private void auth() {
         try {
-            while (needAuthMessage) {
+            while (true) {
                 CloudMessage cloudMessage = (CloudMessage) network.getInputStream().readObject();
                 if (cloudMessage instanceof AuthOk) {
-
-                    Platform.runLater(() -> controller.switchScene("mainCloudView.fxml"));
-                    Platform.runLater(controller::mainCloudViewInitialize);
+                    Platform.runLater(() -> authController.switchScene("mainCloudView.fxml"));
                     break;
                 } else if (cloudMessage instanceof ErrorMessage em) {
-                    Platform.runLater(() -> controller.showError(em.getErrorMessage()));
-                } else if (cloudMessage instanceof RegistrationSuccessMessage rsm) {
-
+                    Platform.runLater(() -> authController.showError(em.getErrorMessage()));
+                } else if (cloudMessage instanceof RegistrationSuccessMessage) {
+                    Platform.runLater(() -> authController.switchScene("hello-view.fxml"));
                 }
             }
         } catch (Exception ignored) {}
@@ -108,5 +105,9 @@ public class Client {
 
     public void setCurrentDirectory(String currentDirectory) {
         this.currentDirectory = currentDirectory;
+    }
+
+    public void setController(CloudMainController controller) {
+        this.controller = controller;
     }
 }

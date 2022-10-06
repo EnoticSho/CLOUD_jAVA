@@ -1,8 +1,10 @@
 package com.example.client_cloud;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -16,43 +18,29 @@ import org.example.model.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ResourceBundle;
 
-public class CloudMainController {
-    private final Client client;
-
-    private Stage stage;
-    private Scene scene;
-    private Parent root;
-
-    private ActionEvent lastEvent;
-
-
+public class CloudMainController implements Initializable{
+    public Label label;
+    public Pane DirectoryField;
+    private Client client;
     public ListView<String> clientView;
     public ListView<String> serverView;
-    @FXML
     public TextField CreateDir;
-    public Pane Start_Window;
-    public Pane logIn;
-    public Pane SignUp;
-    public TextField login_in;
-    public TextField password_in;
-    public AnchorPane main_pane;
-    @FXML
-    public TextField signUP_field_login;
-    @FXML
-    public TextField signUP_field_password;
-    @FXML
-    private AnchorPane DirectoryField;
+
     private ContextMenu cm;
 
-
-    public CloudMainController() {
-        client = new Client(this);
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        Platform.runLater(() -> setCurrentDirectory(System.getProperty("user.home")));
+        contextMenuInitialize();
+        clientViewSetActions();
+        serverViewSetActions();
     }
-
 
     public void downloadFile(ActionEvent actionEvent) throws IOException {
         String fileName = serverView.getSelectionModel().getSelectedItem();
@@ -142,6 +130,7 @@ public class CloudMainController {
 
     public void openTextField(ActionEvent actionEvent) {
         DirectoryField.setVisible(true);
+        label.setText("ENTER DIRECTORY NAME");
         CreateDir.setPromptText("ENTER DIRECTORY NAME");
         CreateDir.setOnKeyPressed(keyEvent -> {
             if (keyEvent.getCode() == KeyCode.ENTER) {
@@ -155,13 +144,6 @@ public class CloudMainController {
                 }
             }
         });
-    }
-
-    public void mainCloudViewInitialize() {
-        contextMenuInitialize();
-        setCurrentDirectory(System.getProperty("user.home"));
-        clientViewSetActions();
-        serverViewSetActions();
     }
 
     public void deleteFile(ActionEvent actionEvent) throws IOException {
@@ -192,6 +174,7 @@ public class CloudMainController {
         String fileOldName = serverView.getSelectionModel().getSelectedItem();
         if (fileOldName != null) {
             DirectoryField.setVisible(true);
+            label.setText("ENTER NEW FILE NAME");
             CreateDir.setPromptText("ENTER NEW FILE NAME");
             final String a = fileOldName;
             CreateDir.setOnKeyPressed(keyEvent -> {
@@ -212,6 +195,7 @@ public class CloudMainController {
                 File oldFile = new File(client.getCurrentDirectory() + "/" + fileOldName);
                 if (!Files.isDirectory(oldFile.toPath())) {
                     DirectoryField.setVisible(true);
+                    label.setText("ENTER NEW FILE NAME");
                     CreateDir.setPromptText("ENTER NEW FILE NAME");
                     CreateDir.setOnKeyPressed(keyEvent -> {
                         if (keyEvent.getCode() == KeyCode.ENTER) {
@@ -234,37 +218,7 @@ public class CloudMainController {
         alert.showAndWait();
     }
 
-    public void sign_in(ActionEvent event) throws IOException {
-        lastEvent = event;
-        switchScene("authView.fxml");
+    public void setClient(Client client) {
+        this.client = client;
     }
-
-    public void sign_up(ActionEvent event) throws IOException {
-        lastEvent = event;
-        switchScene("regView.fxml");
-    }
-
-    public void log_in(ActionEvent event) throws IOException {
-        client.getNetwork().getOutputStream().writeObject(new AuthMessage(login_in.getText(), password_in.getText()));
-        lastEvent = event;
-    }
-
-    public void signUP(ActionEvent actionEvent) throws IOException {
-        client.getNetwork().getOutputStream().writeObject(new RegistrationMessage(signUP_field_login.getText(), signUP_field_password.getText()));
-        lastEvent = actionEvent;
-    }
-
-    public void switchScene(String viewName) {
-        Parent root = null;
-        try {
-            root = FXMLLoader.load(getClass().getResource(viewName));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        stage = (Stage)((Node)lastEvent.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
-        stage.show();
-    }
-
 }

@@ -11,7 +11,7 @@ public class CloudClient extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(CloudClient.class.getResource("hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 600, 450);
+        Scene scene = new Scene(fxmlLoader.load(), 182, 340);
         stage.setTitle("Cloud Client");
         stage.setScene(scene);
         stage.show();

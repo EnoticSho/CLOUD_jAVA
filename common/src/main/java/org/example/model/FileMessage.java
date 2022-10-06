@@ -21,6 +21,6 @@ public class FileMessage implements CloudMessage{
 
     @Override
     public MessageType getType() {
-        return MessageType.File;
+        return MessageType.FILE;
     }
 }
