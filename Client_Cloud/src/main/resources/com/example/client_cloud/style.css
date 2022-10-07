@@ -1,0 +1,50 @@
+#backButton {
+    -fx-text-fill: black;
+    -fx-font-family: "Arial Narrow";
+    -fx-font-weight: bold;
+    -fx-background-color: #e7e7e7;
+}
+
+.button {
+    -fx-text-fill: white;
+    -fx-font-family: "Arial Narrow";
+    -fx-font-weight: bold;
+    -fx-background-color: linear-gradient(#61a2b1, #2A5058);
+}
+
+.label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.root {
+     -fx-background-image: url("./assets/background.png");
+}
+
+#welcome {
+   -fx-font-size: 32px;
+   -fx-font-family: "Arial Black";
+   -fx-fill: #818181;
+}
+
+#REGISTRATION {
+   -fx-font-size: 32px;
+   -fx-font-family: "Arial Black";
+   -fx-fill: #818181;
+}
+
+#WELCOMETOCLOUD {
+   -fx-font-size: 32px;
+   -fx-font-family: "Arial Black";
+   -fx-fill: #818181;
+}
+
+.TextField {
+   -fx-box-shadow:0 0 15px 4px rgba(0,0,0,0.06);
+   -fx-border-radius:15px;
+}
+
+
+
+
