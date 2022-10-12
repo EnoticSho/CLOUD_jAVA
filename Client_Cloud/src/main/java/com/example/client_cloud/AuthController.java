@@ -78,8 +78,18 @@ public class AuthController {
         alert.showAndWait();
     }
 
+    public void showOk(String message) {
+        final Alert alert = new Alert(Alert.AlertType.INFORMATION, message, new ButtonType("OK", ButtonBar.ButtonData.OK_DONE));
+        alert.setTitle("Регистрация");
+        alert.showAndWait();
+    }
+
     public void backToStartView(ActionEvent event) {
         lastEvent = event;
         switchScene("hello-view.fxml");
+    }
+
+    public void exit(ActionEvent event) {
+        System.exit(1);
     }
 }

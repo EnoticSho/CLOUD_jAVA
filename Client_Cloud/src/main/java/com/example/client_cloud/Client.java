@@ -3,12 +3,10 @@ package com.example.client_cloud;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import org.example.DaemonThreadFactory;
 import org.example.model.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,7 +40,8 @@ public class Client {
                     break;
                 } else if (cloudMessage instanceof ErrorMessage em) {
                     Platform.runLater(() -> authController.showError(em.getErrorMessage()));
-                } else if (cloudMessage instanceof RegistrationSuccessMessage) {
+                } else if (cloudMessage instanceof RegistrationSuccessMessage rs) {
+                    Platform.runLater(() -> authController.showOk(rs.getMessage()));
                     Platform.runLater(() -> authController.switchScene("hello-view.fxml"));
                 }
             }

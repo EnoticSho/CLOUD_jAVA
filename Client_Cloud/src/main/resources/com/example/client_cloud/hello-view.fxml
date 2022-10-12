@@ -10,7 +10,7 @@
         <children>
             <Button layoutX="14.0" layoutY="130.0" mnemonicParsing="false" onAction="#sign_in" prefHeight="33.0" prefWidth="184.0" text="sign in" />
             <Button layoutX="14.0" layoutY="181.0" mnemonicParsing="false" onAction="#sign_up" prefHeight="33.0" prefWidth="184.0" text="sign up" />
-         <Button layoutX="394.0" layoutY="282.0" mnemonicParsing="false" prefHeight="33.0" prefWidth="97.0" text="exit" />
+         <Button layoutX="394.0" layoutY="282.0" mnemonicParsing="false" onAction="#exit" prefHeight="33.0" prefWidth="97.0" text="exit" />
          <Label fx:id="WELCOMETOCLOUD" layoutX="64.0" layoutY="42.0" text="WELCOME TO CLOUD" />
         </children>
     </Pane>

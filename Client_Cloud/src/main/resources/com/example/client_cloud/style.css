@@ -40,9 +40,8 @@
    -fx-fill: #818181;
 }
 
-.TextField {
-   -fx-box-shadow:0 0 15px 4px rgba(0,0,0,0.06);
-   -fx-border-radius:15px;
+#DirectoryField {
+    -fx-background-image: url("./assets/background.png");
 }
 
 

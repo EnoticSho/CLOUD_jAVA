@@ -2,18 +2,11 @@ package com.example.client_cloud;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
-import javafx.stage.Stage;
 import org.example.model.*;
 
 import java.io.File;
@@ -61,7 +54,6 @@ public class CloudMainController implements Initializable{
         view.getItems().clear();
         view.getItems().addAll(data);
     }
-
 
     private void contextMenuInitialize() {
         cm = new ContextMenu();
@@ -132,18 +124,18 @@ public class CloudMainController implements Initializable{
         DirectoryField.setVisible(true);
         label.setText("ENTER DIRECTORY NAME");
         CreateDir.setPromptText("ENTER DIRECTORY NAME");
-        CreateDir.setOnKeyPressed(keyEvent -> {
-            if (keyEvent.getCode() == KeyCode.ENTER) {
-                String dirName = CreateDir.getText();
-                try {
-                    client.getNetwork().getOutputStream().writeObject(new DirectoryRequest(dirName));
-                    DirectoryField.setVisible(false);
-                    CreateDir.setText("");
-                } catch (IOException e) {
-                    e.printStackTrace();
+            CreateDir.setOnKeyPressed(keyEvent -> {
+                if (keyEvent.getCode() == KeyCode.ENTER) {
+                    String dirName = CreateDir.getText();
+                    try {
+                        client.getNetwork().getOutputStream().writeObject(new DirectoryRequest(dirName));
+                        DirectoryField.setVisible(false);
+                        CreateDir.setText("");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        });
+            });
     }
 
     public void deleteFile(ActionEvent actionEvent) throws IOException {
@@ -210,12 +202,6 @@ public class CloudMainController implements Initializable{
                 }
             }
         }
-    }
-
-    public void showError(String error) {
-        final Alert alert = new Alert(Alert.AlertType.ERROR, error, new ButtonType("OK", ButtonBar.ButtonData.OK_DONE));
-        alert.setTitle("Ошибка!");
-        alert.showAndWait();
     }
 
     public void setClient(Client client) {
