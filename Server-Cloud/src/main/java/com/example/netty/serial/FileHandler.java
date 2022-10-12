@@ -1,5 +1,7 @@
 package com.example.netty.serial;
 
+import com.example.netty.Database.DBAuthService;
+import com.example.netty.Database.DBRegistrationService;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -8,12 +10,19 @@ import org.example.model.*;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
 
 @Slf4j
 public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
 
     private Path serverDir;
     private Path currentServerDir;
+
+    private final DBAuthService authService;
+
+    public FileHandler(DBAuthService authService) {
+        this.authService = authService;
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, CloudMessage cloudMessage) throws Exception {
@@ -42,7 +51,27 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
             if (Files.exists(oldFile.toPath()) && !Files.isDirectory(oldFile.toPath())) {
                 oldFile.renameTo(newFIle);
             }
+        } else if (cloudMessage instanceof AuthMessage am) {
+            Path pathByLoginAndPassword = authService.getPathByLoginAndPassword(am.getLogin(), am.getPassword());
+            if (pathByLoginAndPassword != null){
+                serverDir = serverDir.resolve(pathByLoginAndPassword);
+                currentServerDir = serverDir;
+                ctx.writeAndFlush(new AuthOk());
+            } else {
+                ctx.writeAndFlush(new ErrorMessage("Неверный логин и пароль"));
+            }
+        } else if (cloudMessage instanceof RegistrationMessage rm) {
+            try (DBRegistrationService dbRegistrationService = new DBRegistrationService()){
+                dbRegistrationService.regUser(rm.getLogin(), rm.getPassword());
+                ctx.writeAndFlush(new RegistrationSuccessMessage());
+                if (!Files.exists(serverDir.resolve(rm.getLogin()))) {
+                    Files.createDirectory(serverDir.resolve(rm.getLogin()));
+                }
+            } catch (SQLException e) {
+                ctx.writeAndFlush(new ErrorMessage("Данный пользователь уже существует"));
+            }
         }
+
         if (currentServerDir.equals(serverDir)) {
             ctx.writeAndFlush(new ListMessage(currentServerDir));
         }else {
@@ -54,6 +83,5 @@ public class FileHandler extends SimpleChannelInboundHandler<CloudMessage> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         serverDir = Path.of("server_files");
         currentServerDir = serverDir;
-        ctx.writeAndFlush(new ListMessage(serverDir));
     }
 }

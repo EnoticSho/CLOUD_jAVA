@@ -1,121 +1,58 @@
 package com.example.client_cloud;
 
-import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.ListView;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.AnchorPane;
-import org.example.DaemonThreadFactory;
+import javafx.scene.layout.Pane;
 import org.example.model.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
-public class CloudMainController implements Initializable {
+public class CloudMainController implements Initializable{
+    public Label label;
+    public Pane DirectoryField;
+    private Client client;
     public ListView<String> clientView;
     public ListView<String> serverView;
-    @FXML
     public TextField CreateDir;
-    @FXML
-    private AnchorPane DirectoryField;
+
     private ContextMenu cm;
-    private String currentDirectory;
-
-    private Network<ObjectDecoderInputStream, ObjectEncoderOutputStream> network;
-
-    private Socket socket;
-    private boolean needReadMessages = true;
-    private DaemonThreadFactory factory;
-
-    public void downloadFile(ActionEvent actionEvent) throws IOException {
-        String fileName = serverView.getSelectionModel().getSelectedItem();
-        network.getOutputStream().writeObject(new FileRequest(fileName));
-    }
-
-    public void sendToServer(ActionEvent actionEvent) throws IOException {
-        String fileName = clientView.getSelectionModel().getSelectedItem();
-        network.getOutputStream().writeObject(new FileMessage(Path.of(currentDirectory).resolve(fileName)));
-    }
-
-    private void readMessages() {
-        try {
-            while (needReadMessages) {
-                CloudMessage cloudMessage = (CloudMessage) network.getInputStream().readObject();
-                if (cloudMessage instanceof FileMessage fileMessage) {
-                    Files.write(Path.of(currentDirectory).resolve(fileMessage.getFileName()), fileMessage.getBytes());
-                    Platform.runLater(() -> fillView(clientView, getFiles(currentDirectory)));
-                } else if (cloudMessage instanceof ListMessage listMessage) {
-                    Platform.runLater(() -> fillView(serverView, listMessage.getFiles()));
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Server off");
-            e.printStackTrace();
-        }
-    }
-
-    private void initNetwork() {
-        try {
-            socket = new Socket("localhost", 8189);
-            network = new Network<>(
-                    new ObjectDecoderInputStream(socket.getInputStream()),
-                    new ObjectEncoderOutputStream(socket.getOutputStream()));
-            factory.getThread(this::readMessages, "cloud-client-read-thread")
-                    .start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        needReadMessages = true;
-        factory = new DaemonThreadFactory();
-        initNetwork();
+        Platform.runLater(() -> setCurrentDirectory(System.getProperty("user.home")));
         contextMenuInitialize();
-        setCurrentDirectory(System.getProperty("user.home"));
-        fillView(clientView, getFiles(currentDirectory));
         clientViewSetActions();
         serverViewSetActions();
     }
 
-    private void setCurrentDirectory(String directory) {
-        currentDirectory = directory;
-        fillView(clientView, getFiles(currentDirectory));
+    public void downloadFile(ActionEvent actionEvent) throws IOException {
+        String fileName = serverView.getSelectionModel().getSelectedItem();
+        client.getNetwork().getOutputStream().writeObject(new FileRequest(fileName));
     }
 
-    private void fillView(ListView<String> view, List<String> data) {
+    public void sendToServer(ActionEvent actionEvent) throws IOException {
+        String fileName = clientView.getSelectionModel().getSelectedItem();
+        client.getNetwork().getOutputStream().writeObject(new FileMessage(Path.of(client.getCurrentDirectory()).resolve(fileName)));
+    }
+
+    public void setCurrentDirectory(String directory) {
+        client.setCurrentDirectory(directory);
+        fillView(clientView, client.getFiles(client.getCurrentDirectory()));
+    }
+
+    public void fillView(ListView<String> view, List<String> data) {
         view.getItems().clear();
         view.getItems().addAll(data);
-    }
-
-    private List<String> getFiles(String directory) {
-        File dir = new File(directory);
-        if (dir.isDirectory()) {
-            String[] list = dir.list();
-            if (list != null) {
-                List<String> files = new ArrayList<>(Arrays.asList(list));
-                files.add(0, "..");
-                return files;
-            }
-        }
-        return List.of();
     }
 
     private void contextMenuInitialize() {
@@ -136,7 +73,6 @@ public class CloudMainController implements Initializable {
                 e.printStackTrace();
             }
         });
-
     }
 
     private void clientViewSetActions() {
@@ -146,9 +82,9 @@ public class CloudMainController implements Initializable {
             }
             if (event.getClickCount() == 2) {
                 String selected = clientView.getSelectionModel().getSelectedItem();
-                File selectedFile = new File(currentDirectory + "/" + selected);
+                File selectedFile = new File(client.getCurrentDirectory() + "/" + selected);
                 if (selectedFile.isDirectory()) {
-                    setCurrentDirectory(currentDirectory + "/" + selected);
+                    setCurrentDirectory(client.getCurrentDirectory() + "/" + selected);
                 }
             }
             if (event.getButton() == MouseButton.SECONDARY) {
@@ -169,7 +105,7 @@ public class CloudMainController implements Initializable {
                 String selected = serverView.getSelectionModel().getSelectedItem();
                 if (selected != null) {
                     try {
-                        network.getOutputStream().writeObject(new DirectoryRequest(selected));
+                        client.getNetwork().getOutputStream().writeObject(new DirectoryRequest(selected));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -186,19 +122,20 @@ public class CloudMainController implements Initializable {
 
     public void openTextField(ActionEvent actionEvent) {
         DirectoryField.setVisible(true);
+        label.setText("ENTER DIRECTORY NAME");
         CreateDir.setPromptText("ENTER DIRECTORY NAME");
-        CreateDir.setOnKeyPressed(keyEvent -> {
-            if (keyEvent.getCode() == KeyCode.ENTER) {
-                String dirName = CreateDir.getText();
-                try {
-                    network.getOutputStream().writeObject(new DirectoryRequest(dirName));
-                    DirectoryField.setVisible(false);
-                    CreateDir.setText("");
-                } catch (IOException e) {
-                    e.printStackTrace();
+            CreateDir.setOnKeyPressed(keyEvent -> {
+                if (keyEvent.getCode() == KeyCode.ENTER) {
+                    String dirName = CreateDir.getText();
+                    try {
+                        client.getNetwork().getOutputStream().writeObject(new DirectoryRequest(dirName));
+                        DirectoryField.setVisible(false);
+                        CreateDir.setText("");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        });
+            });
     }
 
     public void deleteFile(ActionEvent actionEvent) throws IOException {
@@ -212,14 +149,14 @@ public class CloudMainController implements Initializable {
     private void deleteAFile() throws IOException {
         String fileName = serverView.getSelectionModel().getSelectedItem();
         if (fileName != null) {
-            network.getOutputStream().writeObject(new FileDelete(fileName));
+            client.getNetwork().getOutputStream().writeObject(new FileDelete(fileName));
         } else {
             fileName = clientView.getSelectionModel().getSelectedItem();
             if (fileName != null) {
-                Path path = Path.of(currentDirectory + "/" + fileName);
+                Path path = Path.of(client.getCurrentDirectory() + "/" + fileName);
                 if (Files.exists(path) && !Files.isDirectory(path)) {
                     Files.delete(path);
-                    fillView(clientView, getFiles(currentDirectory));
+                    fillView(clientView, client.getFiles(client.getCurrentDirectory()));
                 }
             }
         }
@@ -229,13 +166,14 @@ public class CloudMainController implements Initializable {
         String fileOldName = serverView.getSelectionModel().getSelectedItem();
         if (fileOldName != null) {
             DirectoryField.setVisible(true);
+            label.setText("ENTER NEW FILE NAME");
             CreateDir.setPromptText("ENTER NEW FILE NAME");
             final String a = fileOldName;
             CreateDir.setOnKeyPressed(keyEvent -> {
                 if (keyEvent.getCode() == KeyCode.ENTER) {
                     String fileNewName = CreateDir.getText();
                     try {
-                        network.getOutputStream().writeObject(new FileRename(fileNewName, a));
+                        client.getNetwork().getOutputStream().writeObject(new FileRename(fileNewName, a));
                         DirectoryField.setVisible(false);
                         CreateDir.setText("");
                     } catch (IOException e) {
@@ -246,22 +184,27 @@ public class CloudMainController implements Initializable {
         } else {
             fileOldName = clientView.getSelectionModel().getSelectedItem();
             if (fileOldName != null) {
-                File oldFile = new File(currentDirectory + "/" + fileOldName);
+                File oldFile = new File(client.getCurrentDirectory() + "/" + fileOldName);
                 if (!Files.isDirectory(oldFile.toPath())) {
                     DirectoryField.setVisible(true);
+                    label.setText("ENTER NEW FILE NAME");
                     CreateDir.setPromptText("ENTER NEW FILE NAME");
                     CreateDir.setOnKeyPressed(keyEvent -> {
                         if (keyEvent.getCode() == KeyCode.ENTER) {
                             String fileNewName = CreateDir.getText();
-                            File newFile = new File(currentDirectory + "/" + fileNewName);
+                            File newFile = new File(client.getCurrentDirectory() + "/" + fileNewName);
                             oldFile.renameTo(newFile);
                             DirectoryField.setVisible(false);
                             CreateDir.setText("");
                         }
                     });
-                    fillView(clientView, getFiles(currentDirectory));
+                    fillView(clientView, client.getFiles(client.getCurrentDirectory()));
                 }
             }
         }
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
     }
 }

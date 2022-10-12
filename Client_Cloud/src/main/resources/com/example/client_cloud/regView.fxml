@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="291.0" prefWidth="388.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client_cloud.AuthController">
+    <Pane prefHeight="291.0" prefWidth="388.0">
+        <children>
+            <Label layoutX="42.0" layoutY="126.0" text="Login" />
+            <Label layoutX="42.0" layoutY="178.0" text="Password" />
+            <Button layoutX="158.0" layoutY="225.0" mnemonicParsing="false" onAction="#signUP" prefHeight="41.0" prefWidth="90.0" text="Sign up" />
+            <TextField fx:id="signUP_field_login" layoutX="158.0" layoutY="123.0" />
+            <TextField fx:id="signUP_field_password" layoutX="158.0" layoutY="175.0" />
+         <Button fx:id="backButton" layoutX="315.0" layoutY="14.0" mnemonicParsing="false" onAction="#backToStartView" prefHeight="18.0" prefWidth="59.0" text="Back" />
+         <Label fx:id="REGISTRATION" layoutX="70.0" layoutY="57.0" text="REGISTRATION">
+            <font>
+               <Font name="KacstDigital" size="23.0" />
+            </font>
+         </Label>
+        </children>
+    </Pane>
+</AnchorPane>
